@@ -85,25 +85,107 @@ export default function App() {
   const clearHistory = () => setHistory([]);
 
   // --- LOGIKA UNTUK MENCARI LINK DOWNLOAD ---
+// --- LOGIKA PINTAR MENCARI LINK ---
+// --- LOGIKA PINTAR MENCARI LINK (SUPPORT YOUTUBE & TIKTOK) ---
+// --- MASTER LOGIC: PENCARI LINK DOWNLOAD (UNIVERSAL) ---
   const getDownloadLink = (type) => {
     if (!result) return null;
 
-    // 1. Cek jika API memberikan link langsung (Simple API)
-    if (result.downloadUrl && type === 'video') return result.downloadUrl;
+    // ===============================================
+    // 1. CEK JIKA RESULT ADALAH ARRAY (Khusus Twitter)
+    // ===============================================
+    if (Array.isArray(result)) {
+       // Twitter biasanya kirim array langsung
+       if (type === 'video') {
+          // Cari resolusi tertinggi (misal: 1280x720) atau type mp4
+          const vid = result.find(x => x.type === 'mp4' || x.quality.includes('720') || x.quality.includes('HD'));
+          return vid ? vid.url : result[0]?.url;
+       }
+       return null; // Twitter jarang kasih audio terpisah
+    }
 
-    // 2. Cek jika API memberikan daftar formats (Complex API like YouTube)
-    if (result.formats && Array.isArray(result.formats)) {
+    // ===============================================
+    // 2. CEK LIST/ARRAY DALAM OBJEK (YouTube, TikTok, Pinterest, Douyin)
+    // ===============================================
+    // Kita gabungkan semua kemungkinan nama array menjadi satu variabel 'list'
+    const list = result.formats || result.downloads || result.videoLinks || result.medias;
+
+    if (list && Array.isArray(list)) {
       if (type === 'video') {
-        // Cari format MP4 terbaik
-        const video = result.formats.find(f => f.extension === 'mp4' || f.type === 'video');
+        // A. Cari yang JELAS video (MP4) dan BUKAN streaming (m3u8)
+        let video = list.find(item => {
+           const label = (item.text || item.label || item.type || item.quality || "").toLowerCase();
+           const url = (item.url || "").toLowerCase();
+           
+           // Filter: Harus MP4/Video, Jangan M3U8/Manifest
+           const isVideo = label.includes('video') || label.includes('mp4') || item.extension === 'mp4';
+           const isNotStream = !url.includes('.m3u8') && !url.includes('manifest');
+           
+           return isVideo && isNotStream;
+        });
+
+        // B. Fallback: Cari yang ada label 'No Watermark' atau 'HD' (TikTok/Douyin)
+        if (!video) {
+          video = list.find(item => {
+            const label = (item.text || item.label || "").toLowerCase();
+            return label.includes('watermark') || label.includes('hd') || label.includes('origin');
+          });
+        }
+
+        // C. Fallback Terakhir: Ambil item pertama (Kecuali jika itu audio/profile)
+        if (!video && list.length > 0) {
+           // Pastikan bukan profile picture (Douyin kadang kirim profile di array)
+           const first = list[0];
+           if (!(first.label || "").toLowerCase().includes('profile')) {
+             video = first;
+           }
+        }
+
         return video ? video.url : null;
-      } else if (type === 'audio') {
-        // Cari format Audio/MP3 terbaik
-        const audio = result.formats.find(f => f.extension === 'mp3' || f.extension === 'm4a' || f.type === 'audio');
+      } 
+      
+      else if (type === 'audio') {
+        // Cari MP3/Audio/Music
+        const audio = list.find(item => {
+           const label = (item.text || item.label || item.type || item.extension || "").toLowerCase();
+           return label.includes('mp3') || label.includes('audio') || label.includes('music');
+        });
         return audio ? audio.url : null;
       }
     }
+
+    // ===============================================
+    // 3. CEK KUNCI SPESIFIK (Bluesky, Threads, Snapchat, Capcut, dll)
+    // ===============================================
+    // Ini menangani API yang hasilnya langsung URL string (bukan array)
     
+    if (type === 'video') {
+       // Cek urutan prioritas berdasarkan nama key di service kamu
+       if (result.videoUrl) return result.videoUrl;         // Bluesky, Kuaishou (kadang)
+       if (result.download) return result.download;         // Threads
+       if (result.downloadLink) return result.downloadLink; // Bluesky (backup)
+       if (result.video) return result.video;               // Snapchat/Umum
+       if (result.play) return result.play;                 // TikTok Simple
+       if (result.url) return result.url;                   // Reddit/Linkedin/Umum
+       if (result.file) return result.file;                 // Generic
+       
+       // Cek Nested Data (Capcut/Snapchat kadang dibungkus 'data')
+       if (result.data) {
+          if (typeof result.data === 'string') return result.data; // Jika data langsung url
+          if (result.data.video) return result.data.video;
+          if (result.data.url) return result.data.url;
+          if (result.data.play) return result.data.play;
+       }
+    }
+    
+    else if (type === 'audio') {
+       if (result.music) return result.music;
+       if (result.audio) return result.audio;
+       if (result.sound) return result.sound;
+       // Reddit kadang audioUrl
+       if (result.audioUrl) return result.audioUrl;
+    }
+
     return null;
   };
 
