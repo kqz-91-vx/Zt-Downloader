@@ -73,3 +73,5 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`>> SERVER NYALA DI: http://localhost:${PORT}`);
 });
+
+module.exports = app;

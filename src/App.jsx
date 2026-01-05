@@ -197,7 +197,8 @@ export default function App() {
 
     setIsLoading(true);
     setResult(null);
-    const endpoint = `http://localhost:3000/api/${selected}`;
+
+    const endpoint = `/api/${selected}`;
 
     try {
       const response = await axios.post(endpoint, { url: url });
