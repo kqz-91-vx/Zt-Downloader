@@ -63,6 +63,10 @@ export default function App() {
   const activeColor = selected ? platforms.find(p => p.id === selected).color : '#00f2ff';
   const activeName = selected ? platforms.find(p => p.id === selected).name : 'Universal';
 
+  // --- REWRITE API ENDPOINT ---
+  // Gunakan relative path agar otomatis ikut domain Vercel (Backend Serverless)
+  const endpoint = selected ? `/api/${selected}` : '';
+
   useEffect(() => {
     let interval;
     if (isLoading) {
@@ -86,7 +90,7 @@ export default function App() {
 
   const showNotify = (message, type = 'error') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 4000);
+    setTimeout(() => setNotification(null), 5000); // 5 Detik biar sempat baca
   };
 
   const handlePaste = async () => {
@@ -104,11 +108,10 @@ export default function App() {
 
   const clearHistory = () => setHistory([]);
 
-  // --- LOGIKA UTAMA PENCARI LINK (ANTI-CRASH FIX) ---
+  // --- LOGIKA UTAMA PENCARI LINK (SAFE PARSING) ---
   const getDownloadLink = (type) => {
     if (!result) return null;
 
-    // A. Handling Array (Twitter/IG hasil baru)
     if (Array.isArray(result)) {
        if (type === 'video') {
           const vid = result.find(x => x.type === 'video' || x.type === 'mp4');
@@ -117,34 +120,25 @@ export default function App() {
        return null; 
     }
 
-    // B. Handling Object dengan List Medias
     const list = result.formats || result.downloads || result.videoLinks || result.medias || result.downloadLinks;
     
     if (list && Array.isArray(list)) {
       if (type === 'video') {
         let video = list.find(item => {
-           // FIX CRASH: Pakai String() agar tidak error jika data bukan text
            const label = String(item.text || item.label || item.quality || "").toLowerCase();
            const url = String(item.url || "").toLowerCase();
-           
            const isVideo = label.includes('video') || label.includes('mp4') || item.extension === 'mp4' || item.type === 'video';
            const isNotStream = !url.includes('.m3u8');
-           
            return isVideo && isNotStream;
         });
         
-        // Fallback: Jika tidak ada label video, tapi linknya jelas .mp4
         if (!video) {
             video = list.find(item => item.url && String(item.url).includes('.mp4'));
         }
-
-        // Fallback Terakhir: Item pertama (tapi bukan audio)
         if (!video && list.length > 0) {
            const first = list[0];
            const label = String(first.label || first.type || "").toLowerCase();
-           if (!label.includes('profile') && !label.includes('audio')) {
-             video = first;
-           }
+           if (!label.includes('profile') && !label.includes('audio')) video = first;
         }
         return video ? video.url : null;
       } 
@@ -157,7 +151,6 @@ export default function App() {
       }
     }
     
-    // C. Handling Object Direct Keys (Fix String coercion)
     if (type === 'video') {
        if (result.videoUrl) return result.videoUrl;         
        if (result.download) return result.download;         
@@ -169,7 +162,6 @@ export default function App() {
 
   const getButtonConfig = () => {
     const videoLink = getDownloadLink('video');
-    // FIX CRASH: Cek String(videoLink)
     const isImage = videoLink && (String(videoLink).includes('.jpg') || String(videoLink).includes('.webp') || String(videoLink).includes('.png'));
 
     switch (selected) {
@@ -198,17 +190,31 @@ export default function App() {
     setIsLoading(true);
     setResult(null);
 
-    const endpoint = `/api/${selected}`;
-
     try {
       const response = await axios.post(endpoint, { url: url });
       setResult(response.data);
       addToHistory(response.data);
       setStats(prev => ({ ...prev, links: prev.links + 1 }));
     } catch (error) {
-      console.error(error);
-      const msg = error.response?.data?.details || error.response?.data?.error || "Gagal menghubungi Server.";
-      showNotify(`ERROR [${selected.toUpperCase()}]: ${msg}`, "error");
+      console.error("Extraction Error:", error);
+      
+      // --- SMART ERROR PARSING (V.6.1) ---
+      let msg = "Gagal menghubungi Server.";
+      
+      if (error.response && error.response.data) {
+          const data = error.response.data;
+          // Cek berbagai kemungkinan format error backend
+          msg = data.message || data.error || data.details || JSON.stringify(data);
+          
+          // Jika msg masih berupa object (misal: {status: 'error', ...}), paksa jadi string
+          if (typeof msg === 'object') {
+              msg = JSON.stringify(msg);
+          }
+      } else if (error.message) {
+          msg = error.message;
+      }
+      
+      showNotify(`ERROR: ${msg.substring(0, 100)}`, "error");
     } finally {
       setIsLoading(false);
     }
@@ -235,7 +241,7 @@ export default function App() {
                 <h4 className={`text-xs font-bold tracking-widest uppercase mb-1 ${notification.type === 'error' ? 'text-red-500' : 'text-cyan-400'}`}>
                   {notification.type === 'error' ? 'SYSTEM ALERT' : 'NOTIFICATION'}
                 </h4>
-                <p className="text-gray-300 text-xs font-mono leading-relaxed">{notification.message}</p>
+                <p className="text-gray-300 text-xs font-mono leading-relaxed break-words">{notification.message}</p>
               </div>
               <button onClick={() => setNotification(null)} className="text-gray-500 hover:text-white transition-colors">
                 <X size={16} />
@@ -377,7 +383,6 @@ export default function App() {
                     <p className="text-gray-400 text-xs flex items-center gap-1"><Activity size={10}/> By {result.author}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    {/* TOMBOL UTAMA */}
                     {primaryLink ? (
                       <a 
                         href={primaryLink} 
@@ -393,7 +398,6 @@ export default function App() {
                       </button>
                     )}
 
-                    {/* TOMBOL AUDIO */}
                     {showAudioButton && (
                       getDownloadLink('audio') ? (
                         <a 
@@ -507,7 +511,7 @@ export default function App() {
 
       <footer className="mt-16 text-center opacity-30 hover:opacity-100 transition-opacity pb-8">
         <p className="text-[10px] text-gray-500 font-mono tracking-[0.2em] mb-2">
-          ZERONAUT SYSTEM // V.6.0
+          ZERONAUT SYSTEM // V.6.1
         </p>
         <div className="flex items-center justify-center gap-2 text-[9px] text-gray-600">
           <span>EDUCATIONAL PURPOSE ONLY</span>
