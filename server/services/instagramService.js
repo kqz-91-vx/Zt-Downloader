@@ -10,7 +10,6 @@ async function fetchInstagram(url) {
     console.log("[IG] Menggunakan Gimita API untuk:", url);
 
     // 2. Request ke API Gimita
-    // Kita gunakan encodeURIComponent agar URL aman saat dikirim
     const apiUrl = `https://api.gimita.id/api/downloader/instagram?url=${encodeURIComponent(url)}`;
     
     const response = await axios.get(apiUrl, {
@@ -28,15 +27,12 @@ async function fetchInstagram(url) {
     }
 
     // 4. Parsing Data
-    // API ini mengembalikan array di dalam 'data'
     const mediaItem = result.data[0];
-    
-    // Tentukan tipe konten (Video atau Gambar)
     const isVideo = mediaItem.type === 'mp4' || mediaItem.ext === 'mp4';
     
-    // Karena API ini tidak memberikan thumbnail di response JSON-nya, 
-    // kita pakai default image yang keren biar tampilan tidak kosong.
-    const defaultThumbnail = "https://images.unsplash.com/photo-1611162616475-46b635cb6868?q=80&w=1000&auto=format&fit=crop";
+    // --- UPDATE THUMBNAIL ---
+    // Gunakan Logo Instagram Official yang HD
+    const defaultThumbnail = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/2048px-Instagram_logo_2016.svg.png";
 
     // 5. Return Format Zeronaut
     return {
@@ -55,7 +51,6 @@ async function fetchInstagram(url) {
 
   } catch (error) {
     console.error("[IG Service Error]:", error.message);
-    // Tampilkan pesan error yang jelas
     throw new Error(error.response?.data?.message || "Gagal mengambil data dari API.");
   }
 }

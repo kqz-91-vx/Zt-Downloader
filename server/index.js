@@ -10,6 +10,7 @@ const services = {
     twitter: require('./services/twitterService'),
     spotify: require('./services/spotifyService'),
     instagram: require('./services/instagramService'),
+    facebook: require('./services/facebookService'),
     soundcloud: require('./services/soundcloudService'),
     linkedin: require('./services/linkedinService'),
     pinterest: require('./services/pinterestService'),
