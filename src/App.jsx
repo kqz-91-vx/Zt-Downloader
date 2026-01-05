@@ -510,10 +510,10 @@ export default function App() {
       </motion.a>
 
       <footer className="mt-16 text-center opacity-30 hover:opacity-100 transition-opacity pb-8">
-        <p className="text-[10px] text-gray-500 font-mono tracking-[0.2em] mb-2">
+        <p className="text-[10px] text-white font-mono tracking-[0.2em] mb-2">
           © 2026 DramaTix. All rights reserved.
         </p>
-        <div className="flex items-center justify-center gap-2 text-[9px] text-gray-600">
+        <div className="flex items-center justify-center gap-2 text-[9px] text-white">
           <span>Powered by ZeroNaut</span>
         </div>
       </footer>
