@@ -506,15 +506,15 @@ export default function App() {
         className="flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-xs px-5 py-3 rounded-full shadow-[0_0_20px_rgba(255,165,0,0.4)] hover:shadow-[0_0_30px_rgba(255,165,0,0.6)] transition-shadow cursor-pointer w-max mx-auto mt-10 md:fixed md:bottom-6 md:right-6 md:z-50 md:m-0"
       >
         <Heart size={16} className="fill-black animate-pulse" />
-        DONATE ME
+        DONATE
       </motion.a>
 
       <footer className="mt-16 text-center opacity-30 hover:opacity-100 transition-opacity pb-8">
         <p className="text-[10px] text-gray-500 font-mono tracking-[0.2em] mb-2">
-          ZERONAUT SYSTEM // V.6.1
+          © 2026 DramaTix. All rights reserved.
         </p>
         <div className="flex items-center justify-center gap-2 text-[9px] text-gray-600">
-          <span>EDUCATIONAL PURPOSE ONLY</span>
+          <span>Powered by ZeroNaut</span>
         </div>
       </footer>
     </div>
