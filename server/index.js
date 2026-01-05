@@ -70,8 +70,10 @@ app.get('/', (req, res) => {
     res.send('ZERONAUT ENGINE READY 🚀');
 });
 
-app.listen(PORT, () => {
-    console.log(`>> SERVER NYALA DI: http://localhost:${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`>> SERVER NYALA DI: http://localhost:${PORT}`);
+    });
+}
 
 module.exports = app;
