@@ -498,7 +498,7 @@ export default function App() {
 
       {/* DONATE BUTTON */}
       <motion.a
-        href="https://sociabuzz.com/username_kamu" 
+        href="https://sociabuzz.com/zeronaut/tribe" 
         target="_blank"
         rel="noopener noreferrer"
         whileHover={{ scale: 1.05 }}
