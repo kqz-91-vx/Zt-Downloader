@@ -511,7 +511,7 @@ export default function App() {
 
       <footer className="mt-16 text-center opacity-30 hover:opacity-100 transition-opacity pb-8">
         <p className="text-[10px] text-white font-mono tracking-[0.2em] mb-2">
-          © 2026 DramaTix. All rights reserved.
+          © 2026 ZeroNaut Downloader. All rights reserved.
         </p>
         <div className="flex items-center justify-center gap-2 text-[9px] text-white">
           <span>Powered by ZeroNaut</span>
