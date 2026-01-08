@@ -20,7 +20,6 @@ const loadingLogs = [
 ];
 
 export default function App() {
-  // State Definitions
   const [isUploading, setIsUploading] = useState(false);
   const [logIndex, setLogIndex] = useState(0);
   const [notification, setNotification] = useState(null);
@@ -30,7 +29,7 @@ export default function App() {
   
   const fileInputRef = useRef(null);
 
-  // --- SAFE LOAD (CRASH FIX) ---
+  // --- SAFE LOAD ---
   useEffect(() => {
     try {
       const savedData = localStorage.getItem('bjFilesPlain');
@@ -43,7 +42,6 @@ export default function App() {
       }
     } catch (e) {
       console.error("Storage Error:", e);
-      // Agar error aaye to local storage clear kar do taaki app crash na ho
       localStorage.removeItem('bjFilesPlain');
     }
   }, []);
@@ -67,7 +65,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // --- LOGIC ---
   const calculateStats = (fileList) => {
     const totalSize = fileList.reduce((acc, f) => acc + (f.size || 0), 0);
     const todayStr = new Date().toDateString();
@@ -75,7 +72,7 @@ export default function App() {
 
     setStats({
       count: fileList.length,
-      size: (totalSize / (1024 * 1024)).toFixed(2), // MB
+      size: (totalSize / (1024 * 1024)).toFixed(2),
       today: todayCount
     });
   };
@@ -101,7 +98,6 @@ export default function App() {
 
       const data = res.data;
 
-      // API Response Check (Matches HTML Logic)
       if (data.ok || data.success) {
         const newFile = {
           id: Date.now(),
@@ -144,6 +140,34 @@ export default function App() {
     navigator.clipboard.writeText(url);
     showNotify("Link Copied to Clipboard", "success");
   };
+
+  // --- STATS CONFIGURATION (THE NEW COLORFUL GRID) ---
+  const statsConfig = [
+    { 
+      label: 'Total Files', 
+      value: stats.count, 
+      icon: <File />, 
+      color: '#3b82f6' // Neon Blue
+    },
+    { 
+      label: 'Used Space', 
+      value: `${stats.size} MB`, 
+      icon: <HardDrive />, 
+      color: '#f59e0b' // Gold/Orange
+    },
+    { 
+      label: 'Today', 
+      value: stats.today, 
+      icon: <Zap />, 
+      color: '#10b981' // Emerald Green
+    },
+    { 
+      label: 'Bandwidth', 
+      value: '∞', 
+      icon: <Activity />, 
+      color: '#d946ef' // Neon Pink/Purple
+    },
+  ];
 
   return (
     <div className="min-h-screen p-6 flex flex-col items-center justify-center font-sans overflow-x-hidden relative bg-[#050505]">
@@ -215,41 +239,54 @@ export default function App() {
         </div>
       </header>
 
-      {/* --- STATS GRID (Replaces the old Icon Grid) --- */}
-      {/* Defined inline to prevent crashing from external component refs */}
+      {/* --- ANIMATED COLORFUL STATS GRID --- */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="w-full max-w-3xl mb-8 z-10 grid grid-cols-2 md:grid-cols-4 gap-3 px-4"
+        className="w-full max-w-3xl mb-8 z-10"
       >
-        <div className="bg-[#0a0a0c] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center hover:border-green-500/30 transition-colors group">
-            <div className="text-gray-500 group-hover:text-green-400 mb-2"><File size={18}/></div>
-            <div className="text-lg font-bold text-white font-mono">{stats.count}</div>
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Total Files</div>
-        </div>
-        <div className="bg-[#0a0a0c] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center hover:border-green-500/30 transition-colors group">
-            <div className="text-gray-500 group-hover:text-green-400 mb-2"><HardDrive size={18}/></div>
-            <div className="text-lg font-bold text-white font-mono">{stats.size} MB</div>
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Used Space</div>
-        </div>
-        <div className="bg-[#0a0a0c] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center hover:border-green-500/30 transition-colors group">
-            <div className="text-gray-500 group-hover:text-green-400 mb-2"><Zap size={18}/></div>
-            <div className="text-lg font-bold text-white font-mono">{stats.today}</div>
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Today</div>
-        </div>
-        <div className="bg-[#0a0a0c] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center hover:border-green-500/30 transition-colors group">
-            <div className="text-gray-500 group-hover:text-green-400 mb-2"><Activity size={18}/></div>
-            <div className="text-lg font-bold text-white font-mono">∞</div>
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Bandwidth</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-2">
+          {statsConfig.map((item, index) => (
+            <motion.div
+              key={index}
+              animate={{ 
+                y: [0, -6, 0], // Floating Effect
+                boxShadow: [`0 0 0px ${item.color}00`, `0 0 15px ${item.color}20`, `0 0 0px ${item.color}00`] // Glow Effect
+              }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity, 
+                delay: index * 0.2, // Staggered Animation
+                ease: "easeInOut" 
+              }}
+              className="bg-[#0a0a0c] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center transition-colors group relative overflow-hidden"
+              style={{ borderColor: `${item.color}30` }} // Border matches color slightly
+            >
+               {/* Background Glow */}
+               <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500" style={{ backgroundColor: item.color }}></div>
+               
+               {/* Icon */}
+               <div className="mb-2 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }}>
+                 {React.cloneElement(item.icon, { size: 22 })}
+               </div>
+               
+               {/* Value */}
+               <div className="text-lg font-bold text-white font-mono tracking-tight">{item.value}</div>
+               
+               {/* Label */}
+               <div className="text-[10px] uppercase tracking-widest opacity-60 font-bold mt-1" style={{ color: item.color }}>
+                 {item.label}
+               </div>
+            </motion.div>
+          ))}
         </div>
       </motion.div>
 
-      {/* --- UPLOAD AREA (Replaces Search Input) --- */}
+      {/* --- UPLOAD AREA --- */}
       <motion.div layout className="w-full max-w-3xl mb-8 relative z-20">
         <div className="bg-[#0a0a0c] border border-white/10 p-1 rounded-2xl shadow-2xl transition-colors duration-500" style={{ borderColor: THEME_COLOR }}>
           <div className="bg-[#121214] rounded-xl p-4 sm:p-5 flex flex-col gap-3">
             
-            {/* Status Line */}
             <div className="flex items-center justify-between text-[10px] font-mono text-gray-400">
               <span className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: THEME_COLOR }} />
@@ -258,7 +295,6 @@ export default function App() {
               {isUploading ? <span className="text-green-400 animate-pulse">{">"} {loadingLogs[logIndex]}</span> : <span>READY TO UPLOAD</span>}
             </div>
 
-            {/* Upload Box */}
             <div 
                 onClick={() => fileInputRef.current.click()}
                 className="relative flex flex-col items-center justify-center h-32 border-2 border-dashed border-white/10 rounded-lg hover:border-green-500/30 hover:bg-white/5 transition-all cursor-pointer group"
@@ -286,7 +322,7 @@ export default function App() {
         </div>
       </motion.div>
 
-      {/* --- FILE LIST (Replaces Result Card) --- */}
+      {/* --- FILE LIST --- */}
       <AnimatePresence>
         {files.length > 0 && (
           <motion.div
