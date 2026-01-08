@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Loader2, Activity, AlertTriangle, X, Zap, Users, BarChart3, Heart, 
-  CheckCircle, CloudUpload, File, Trash2, Copy, HardDrive, Database, Server, Shield
+  Loader2, Activity, AlertTriangle, X, Zap, Users, Heart, 
+  CheckCircle, CloudUpload, File, Trash2, Copy, HardDrive, Database, Server
 } from 'lucide-react';
 import axios from 'axios';
 
 // --- CONFIG ---
 const INITIAL_VISITORS = 14212;
-const THEME_COLOR = '#3DDC84'; // Same Android Green Color
+const THEME_COLOR = '#3DDC84'; // Android Green
 const UPLOAD_API = 'https://bj-media-hosting.pages.dev/api/upload';
 
 const loadingLogs = [
@@ -20,26 +20,35 @@ const loadingLogs = [
 ];
 
 export default function App() {
+  // State Definitions
   const [isUploading, setIsUploading] = useState(false);
   const [logIndex, setLogIndex] = useState(0);
   const [notification, setNotification] = useState(null);
-  
-  // File System State
   const [files, setFiles] = useState([]);
   const [stats, setStats] = useState({ count: 0, size: 0, today: 0 });
-  const fileInputRef = useRef(null);
-  
-  // Fake Live Stats
   const [liveVisitors, setLiveVisitors] = useState(INITIAL_VISITORS);
+  
+  const fileInputRef = useRef(null);
 
-  // --- LOAD SAVED FILES ---
+  // --- SAFE LOAD (CRASH FIX) ---
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('bjFilesPlain') || '[]');
-    setFiles(saved);
-    calculateStats(saved);
+    try {
+      const savedData = localStorage.getItem('bjFilesPlain');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        if (Array.isArray(parsedData)) {
+          setFiles(parsedData);
+          calculateStats(parsedData);
+        }
+      }
+    } catch (e) {
+      console.error("Storage Error:", e);
+      // Agar error aaye to local storage clear kar do taaki app crash na ho
+      localStorage.removeItem('bjFilesPlain');
+    }
   }, []);
 
-  // --- LOG ANIMATION ---
+  // --- ANIMATIONS ---
   useEffect(() => {
     let interval;
     if (isUploading) {
@@ -51,7 +60,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isUploading]);
 
-  // --- LIVE VISITORS ANIMATION ---
   useEffect(() => {
     const interval = setInterval(() => {
       setLiveVisitors(prev => prev + Math.floor(Math.random() * 5) - 2);
@@ -59,6 +67,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // --- LOGIC ---
   const calculateStats = (fileList) => {
     const totalSize = fileList.reduce((acc, f) => acc + (f.size || 0), 0);
     const todayStr = new Date().toDateString();
@@ -76,7 +85,6 @@ export default function App() {
     setTimeout(() => setNotification(null), 5000);
   };
 
-  // --- UPLOAD HANDLER ---
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -93,7 +101,8 @@ export default function App() {
 
       const data = res.data;
 
-      if (data.ok) {
+      // API Response Check (Matches HTML Logic)
+      if (data.ok || data.success) {
         const newFile = {
           id: Date.now(),
           name: data.filename || file.name,
@@ -115,7 +124,7 @@ export default function App() {
 
     } catch (error) {
       console.error(error);
-      showNotify("Upload Failed: " + error.message, "error");
+      showNotify("Upload Failed. Check Network.", "error");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -206,16 +215,33 @@ export default function App() {
         </div>
       </header>
 
-      {/* --- STATS GRID (Replaces Icons) --- */}
+      {/* --- STATS GRID (Replaces the old Icon Grid) --- */}
+      {/* Defined inline to prevent crashing from external component refs */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="w-full max-w-3xl mb-8 z-10 grid grid-cols-2 md:grid-cols-4 gap-3"
+        className="w-full max-w-3xl mb-8 z-10 grid grid-cols-2 md:grid-cols-4 gap-3 px-4"
       >
-        <StatItem icon={<File size={18}/>} label="Total Files" value={stats.count} delay={0} />
-        <StatItem icon={<HardDrive size={18}/>} label="Used Space" value={`${stats.size} MB`} delay={0.1} />
-        <StatItem icon={<Zap size={18}/>} label="Uploaded Today" value={stats.today} delay={0.2} />
-        <StatItem icon={<Activity size={18}/>} label="Bandwidth" value="Unlimited" delay={0.3} />
+        <div className="bg-[#0a0a0c] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center hover:border-green-500/30 transition-colors group">
+            <div className="text-gray-500 group-hover:text-green-400 mb-2"><File size={18}/></div>
+            <div className="text-lg font-bold text-white font-mono">{stats.count}</div>
+            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Total Files</div>
+        </div>
+        <div className="bg-[#0a0a0c] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center hover:border-green-500/30 transition-colors group">
+            <div className="text-gray-500 group-hover:text-green-400 mb-2"><HardDrive size={18}/></div>
+            <div className="text-lg font-bold text-white font-mono">{stats.size} MB</div>
+            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Used Space</div>
+        </div>
+        <div className="bg-[#0a0a0c] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center hover:border-green-500/30 transition-colors group">
+            <div className="text-gray-500 group-hover:text-green-400 mb-2"><Zap size={18}/></div>
+            <div className="text-lg font-bold text-white font-mono">{stats.today}</div>
+            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Today</div>
+        </div>
+        <div className="bg-[#0a0a0c] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center hover:border-green-500/30 transition-colors group">
+            <div className="text-gray-500 group-hover:text-green-400 mb-2"><Activity size={18}/></div>
+            <div className="text-lg font-bold text-white font-mono">∞</div>
+            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Bandwidth</div>
+        </div>
       </motion.div>
 
       {/* --- UPLOAD AREA (Replaces Search Input) --- */}
@@ -339,7 +365,7 @@ export default function App() {
                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
                  <p className="text-[10px] font-bold tracking-widest text-green-500/70 uppercase">Total Uploads</p>
               </div>
-              <h3 className="text-2xl font-mono text-white font-bold">{(INITIAL_LINKS + stats.count).toLocaleString()}</h3>
+              <h3 className="text-2xl font-mono text-white font-bold">{(INITIAL_VISITORS + stats.count).toLocaleString()}</h3>
            </div>
            <div className="p-3 bg-green-500/10 rounded-xl text-green-400 group-hover:scale-110 transition-transform">
               <Database size={20} />
@@ -370,28 +396,4 @@ export default function App() {
       </footer>
     </div>
   );
-}
-
-// --- HELPER COMPONENT FOR STATS ---
-function StatItem({ icon, label, value, delay }) {
-    return (
-        <motion.div
-            initial={{ y: 0 }}
-            animate={{ 
-                y: [0, -4, 0],
-                boxShadow: [`0 0 0px ${THEME_COLOR}00`, `0 0 10px ${THEME_COLOR}20`, `0 0 0px ${THEME_COLOR}00`]
-            }}
-            transition={{ 
-                duration: 4, 
-                repeat: Infinity, 
-                delay: delay, 
-                ease: "easeInOut" 
-            }}
-            className="bg-[#0a0a0c] border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center hover:border-green-500/30 transition-colors group"
-        >
-            <div className="text-gray-500 group-hover:text-green-400 transition-colors mb-2">{icon}</div>
-            <div className="text-lg font-bold text-white font-mono">{value}</div>
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider">{label}</div>
-        </motion.div>
-    )
 }
