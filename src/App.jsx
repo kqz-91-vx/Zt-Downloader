@@ -10,6 +10,7 @@ import {
 import axios from 'axios';
 
 // --- DATABASE PLATFORM ---
+// Note: 'id' must match the key in server/index.js services object
 const platforms = [
   { id: 'tiktok', name: 'TikTok', icon: <Music />, color: '#ff0050' },
   { id: 'instagram', name: 'Instagram', icon: <Instagram />, color: '#E1306C' },
@@ -27,7 +28,7 @@ const platforms = [
   { id: 'capcut', name: 'CapCut', icon: <Scissors />, color: '#ffffff' },
   { id: 'dailymotion', name: 'Dailymotion', icon: <Video />, color: '#0066DC' },
   { id: 'bluesky', name: 'Bluesky', icon: <Cloud />, color: '#0085FF' },
-  // --- NEW PLATFORM ADDED ---
+  // 'apps' key matches server/index.js logic
   { id: 'apps', name: 'App Store', icon: <Smartphone />, color: '#3DDC84' },
 ];
 
@@ -65,9 +66,9 @@ export default function App() {
   const activeColor = selected ? platforms.find(p => p.id === selected).color : '#00f2ff';
   const activeName = selected ? platforms.find(p => p.id === selected).name : 'Universal';
 
-  // --- API ROUTING LOGIC ---
-  // Agar Apps select hai to external API, nahi to internal backend
-  const endpoint = selected && selected !== 'apps' ? `/api/${selected}` : '';
+  // --- API ENDPOINT ---
+  // Now simpler: Always points to your backend
+  const endpoint = selected ? `/api/${selected}` : '';
 
   useEffect(() => {
     let interval;
@@ -110,17 +111,17 @@ export default function App() {
 
   const clearHistory = () => setHistory([]);
 
-  // --- LINK PARSER LOGIC ---
+  // --- DOWNLOAD LINK PARSER ---
   const getDownloadLink = (type) => {
     if (!result) return null;
 
-    // 1. APPS LOGIC (Direct Mapping)
+    // 1. APPS LOGIC (Handled cleanly via backend mapping now)
     if (selected === 'apps') {
-       if (type === 'video') return result.url; // Maps to apkUrl
+       if (type === 'video') return result.url; // Backend sends apkUrl as 'url'
        return null;
     }
 
-    // 2. ARRAY LOGIC (Social Media)
+    // 2. GENERIC LOGIC
     if (Array.isArray(result)) {
        if (type === 'video') {
           const vid = result.find(x => x.type === 'video' || x.type === 'mp4');
@@ -129,7 +130,6 @@ export default function App() {
        return null; 
     }
 
-    // 3. COMPLEX OBJECT LOGIC
     const list = result.formats || result.downloads || result.videoLinks || result.medias || result.downloadLinks;
     
     if (list && Array.isArray(list)) {
@@ -161,7 +161,6 @@ export default function App() {
       }
     }
     
-    // 4. FALLBACK LOGIC
     if (type === 'video') {
        if (result.videoUrl) return result.videoUrl;         
        if (result.download) return result.download;         
@@ -172,7 +171,6 @@ export default function App() {
   };
 
   const getButtonConfig = () => {
-    // Logic to determine Button Text/Icon
     const videoLink = getDownloadLink('video');
     const isImage = videoLink && (String(videoLink).includes('.jpg') || String(videoLink).includes('.webp') || String(videoLink).includes('.png'));
 
@@ -204,48 +202,14 @@ export default function App() {
     setResult(null);
 
     try {
-      let dataResponse;
-
-      // ==========================================
-      // >>> LOGIC FIX: APP SEARCH (GET REQUEST) <<<
-      // ==========================================
-      if (selected === 'apps') {
-          // Hum Axios GET use kar rahe hain with Params
-          // URL: https://f-droid-search-download-bj.vercel.app/?q=termux
-          const response = await axios.get("https://f-droid-search-download-bj.vercel.app/", {
-              params: { q: url }
-          });
-
-          const appData = response.data;
-
-          // Check for API internal error
-          if (!appData || appData.ok === false) {
-             throw new Error(appData.message || "App not found on F-Droid.");
-          }
-
-          // JSON Mapping based on your provided format
-          dataResponse = {
-             title: appData.name || url,
-             // Fallback for Icon
-             thumbnail: appData.icon || 'https://cdn-icons-png.flaticon.com/512/107/107168.png',
-             author: appData.creator || 'F-Droid Repo',
-             // IMPORTANT: Mapping apkUrl to url for button logic
-             url: appData.apkUrl, 
-             size: 'Latest',
-             description: appData.summary,
-             date: appData.version,
-             type: 'app'
-          };
-      } 
-      // ==========================================
-      // >>> LOGIC: SOCIAL MEDIA (POST REQUEST) <<<
-      // ==========================================
-      else {
-          // Yeh purana logic hai jo endpoint variable use karta hai
-          const response = await axios.post(endpoint, { url: url });
-          dataResponse = response.data;
-      }
-
+      // --- UNIFIED API CALL ---
+      // Ab ye code sabke liye same hai.
+      // Agar 'apps' select hai, endpoint '/api/apps' banega.
+      // Backend automatically 'url' (jo ab search term hai) ko appsService.js ko bhej dega.
+      const response = await axios.post(endpoint, { url: url });
+      
+      const dataResponse = response.data;
+      
       setResult(dataResponse);
       addToHistory(dataResponse);
       setStats(prev => ({ ...prev, links: prev.links + 1 }));
@@ -256,10 +220,10 @@ export default function App() {
       let msg = "Gagal menghubungi Server.";
       
       if (error.code === "ERR_NETWORK") {
-          msg = "Network Error! Check internet or CORS issue.";
+         msg = "Server Error: Backend is unreachable.";
       } else if (error.response && error.response.data) {
           const data = error.response.data;
-          msg = data.message || data.error || JSON.stringify(data);
+          msg = data.message || data.error || data.details || JSON.stringify(data);
           if (typeof msg === 'object') msg = JSON.stringify(msg);
       } else if (error.message) {
           msg = error.message;
