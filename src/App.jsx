@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, Activity, AlertTriangle, X, Zap, Users, BarChart3, Heart, 
-  Smartphone, CheckCircle, ArrowLeft, ArrowRight, Download, Box, Star
+  Smartphone, CheckCircle, ArrowLeft, ArrowRight, Download, Box, Star,
+  // New Icons for Visual Grid
+  Instagram, Youtube, Ghost, Twitter, Facebook, Music, Video, 
+  Gamepad2, MessageCircle, Camera, Shield
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -10,6 +13,18 @@ import axios from 'axios';
 const INITIAL_VISITORS = 14212;
 const INITIAL_LINKS = 45902;
 const THEME_COLOR = '#3DDC84'; // Android Green
+
+// --- VISUAL ICONS (DECORATIVE + SHORTCUT) ---
+const visualGrid = [
+  { name: 'Instagram', icon: <Instagram />, color: '#E1306C' },
+  { name: 'TikTok', icon: <Music />, color: '#ff0050' },
+  { name: 'YouTube', icon: <Youtube />, color: '#FF0000' },
+  { name: 'Snapchat', icon: <Ghost />, color: '#FFFC00' },
+  { name: 'PUBG Mobile', icon: <Gamepad2 />, color: '#f2a900' },
+  { name: 'WhatsApp', icon: <MessageCircle />, color: '#25D366' },
+  { name: 'CapCut', icon: <Video />, color: '#ffffff' },
+  { name: 'Twitter', icon: <Twitter />, color: '#1DA1F2' },
+];
 
 const loadingLogs = [
   "Connecting to repository...",
@@ -20,12 +35,12 @@ const loadingLogs = [
 ];
 
 export default function App() {
-  const [url, setUrl] = useState(""); // Stores Search Query
+  const [url, setUrl] = useState(""); 
   const [isLoading, setIsLoading] = useState(false);
   
-  // --- NEW STATES FOR PAGINATION ---
-  const [results, setResults] = useState([]); // Stores Array of Apps
-  const [currentIndex, setCurrentIndex] = useState(0); // Which app to show
+  // Pagination States
+  const [results, setResults] = useState([]); 
+  const [currentIndex, setCurrentIndex] = useState(0); 
   
   const [logIndex, setLogIndex] = useState(0);
   const [notification, setNotification] = useState(null);
@@ -57,25 +72,16 @@ export default function App() {
     setTimeout(() => setNotification(null), 5000);
   };
 
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      setUrl(text);
-    } catch (err) {
-      showNotify("Clipboard access denied", "error");
-    }
-  };
-
   // --- SEARCH FUNCTION ---
-  const handleExtract = async () => {
-    if (!url) return showNotify("Please enter App Name!", "error");
+  const handleExtract = async (searchQuery = url) => {
+    if (!searchQuery) return showNotify("Please enter App Name!", "error");
 
     setIsLoading(true);
     setResults([]);
     setCurrentIndex(0);
 
     try {
-      const response = await axios.post('/api/apps', { url: url });
+      const response = await axios.post('/api/apps', { url: searchQuery });
       const data = response.data;
       
       if (Array.isArray(data) && data.length > 0) {
@@ -94,6 +100,12 @@ export default function App() {
     }
   };
 
+  // --- SHORTCUT CLICK ---
+  const handleIconClick = (name) => {
+      setUrl(name);
+      handleExtract(name);
+  };
+
   // --- PAGINATION HANDLERS ---
   const handleNext = () => {
     if (currentIndex < results.length - 1) {
@@ -107,12 +119,17 @@ export default function App() {
     }
   };
 
-  // Current Active Item
   const result = results[currentIndex];
 
   return (
     <div className="min-h-screen p-6 flex flex-col items-center justify-center font-sans overflow-x-hidden relative bg-[#050505]">
       
+      {/* BACKGROUND PARTICLES (Static for performance) */}
+      <div className="fixed inset-0 pointer-events-none opacity-20">
+          <div className="absolute top-10 left-10 w-32 h-32 bg-green-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 right-10 w-32 h-32 bg-cyan-500/20 rounded-full blur-3xl"></div>
+      </div>
+
       {/* NOTIFICATION */}
       <AnimatePresence>
         {notification && (
@@ -141,8 +158,8 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* HEADER - SAME AS ORIGINAL */}
-      <header className="mb-10 text-center flex flex-col items-center w-full max-w-2xl mx-auto">
+      {/* HEADER */}
+      <header className="mb-6 text-center flex flex-col items-center w-full max-w-2xl mx-auto z-10">
         <div className="flex justify-center items-center gap-2 mb-6 px-3 py-1 rounded-full bg-white/5 border border-white/5">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
@@ -165,7 +182,7 @@ export default function App() {
           ZERONAUT.DOWNLOADER
         </motion.h1>
         
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-4">
            <div className="h-[1px] w-8 bg-gradient-to-r from-transparent to-green-500/50"></div>
            <h2 className="text-[10px] sm:text-xs font-medium tracking-[0.5em] text-green-400/80 uppercase whitespace-nowrap">
               NO WATERMARK ENGINE
@@ -173,6 +190,40 @@ export default function App() {
            <div className="h-[1px] w-8 bg-gradient-to-l from-transparent to-green-500/50"></div>
         </div>
       </header>
+
+      {/* --- DECORATIVE HOLOGRAPHIC GRID --- */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full max-w-3xl mb-8 z-10"
+      >
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 px-4">
+          {visualGrid.map((item, index) => (
+            <motion.button
+              key={index}
+              onClick={() => handleIconClick(item.name)}
+              whileHover={{ scale: 1.1, y: -5, borderColor: item.color }}
+              whileTap={{ scale: 0.95 }}
+              animate={{ 
+                y: [0, -4, 0],
+                boxShadow: [`0 0 0px ${item.color}00`, `0 0 10px ${item.color}40`, `0 0 0px ${item.color}00`]
+              }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity, 
+                delay: index * 0.2, // Staggered animation effect
+                ease: "easeInOut" 
+              }}
+              className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#0a0a0c] border border-white/5 flex items-center justify-center group transition-colors"
+              style={{ color: item.color }}
+            >
+               {/* Glow Effect on Hover */}
+               <div className="absolute inset-0 bg-current opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-300"></div>
+               {React.cloneElement(item.icon, { size: 20 })}
+            </motion.button>
+          ))}
+        </div>
+      </motion.div>
 
       {/* INPUT AREA */}
       <motion.div layout className="w-full max-w-3xl mb-8 relative z-20">
@@ -191,12 +242,12 @@ export default function App() {
                   type="text"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="Type App Name (e.g. PUBG, Instagram)..."
+                  placeholder="Type App Name or Select Icon above..."
                   className="w-full h-12 bg-black/40 border border-white/5 rounded-lg px-4 pr-10 text-white outline-none focus:border-white/20 transition-all placeholder:text-gray-600 font-mono text-xs"
                 />
               </div>
               <button 
-                onClick={handleExtract}
+                onClick={() => handleExtract()}
                 disabled={isLoading}
                 className="h-12 px-8 rounded-lg font-bold text-black text-xs flex items-center justify-center gap-2 transition-transform active:scale-95 hover:brightness-110 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(0,0,0,0.3)]"
                 style={{ backgroundColor: THEME_COLOR }}
@@ -213,12 +264,12 @@ export default function App() {
       <AnimatePresence mode="wait">
         {result && (
           <motion.div
-            key={currentIndex} // Key change triggers animation on Next/Prev
+            key={currentIndex}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-3xl mb-8"
+            className="w-full max-w-3xl mb-8 z-10"
           >
             <div className="bg-[#0a0a0c] border border-white/10 rounded-2xl overflow-hidden">
               <div className="bg-white/5 px-6 py-3 border-b border-white/5 flex justify-between items-center">
@@ -293,7 +344,7 @@ export default function App() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-3xl mt-12 grid grid-cols-2 gap-4"
+        className="w-full max-w-3xl mt-12 grid grid-cols-2 gap-4 z-10"
       >
         <div className="bg-[#0a0a0c] border border-white/5 rounded-2xl p-5 flex items-center justify-between group hover:border-cyan-500/20 transition-colors">
            <div>
@@ -329,13 +380,13 @@ export default function App() {
         rel="noopener noreferrer"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-xs px-5 py-3 rounded-full shadow-[0_0_20px_rgba(255,165,0,0.4)] hover:shadow-[0_0_30px_rgba(255,165,0,0.6)] transition-shadow cursor-pointer w-max mx-auto mt-10 md:fixed md:bottom-6 md:right-6 md:z-50 md:m-0"
+        className="flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-xs px-5 py-3 rounded-full shadow-[0_0_20px_rgba(255,165,0,0.4)] hover:shadow-[0_0_30px_rgba(255,165,0,0.6)] transition-shadow cursor-pointer w-max mx-auto mt-10 md:fixed md:bottom-6 md:right-6 md:z-50 md:m-0 z-50"
       >
         <Heart size={16} className="fill-black animate-pulse" />
         DONATE
       </motion.a>
 
-      <footer className="mt-16 text-center opacity-30 hover:opacity-100 transition-opacity pb-8">
+      <footer className="mt-16 text-center opacity-30 hover:opacity-100 transition-opacity pb-8 z-10">
         <p className="text-[10px] text-white font-mono tracking-[0.2em] mb-2">
           © 2026 ZeroNaut Downloader. All rights reserved.
         </p>
