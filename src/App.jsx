@@ -2,13 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, Activity, AlertTriangle, X, Zap, Users, Heart, 
-  CheckCircle, CloudUpload, File, Trash2, Copy, HardDrive, Database, Server
+  CheckCircle, CloudUpload, File, Trash2, Copy, HardDrive, 
+  Database, Server, ExternalLink // <-- Added ExternalLink Icon
 } from 'lucide-react';
 import axios from 'axios';
 
 // --- CONFIG ---
-const INITIAL_VISITORS = 14212;
-const THEME_COLOR = '#3DDC84'; // Android Green
+// Stats ko realistic kar diya hai new project ke hisab se
+const INITIAL_ACTIVE_USERS = 24; 
+const INITIAL_TOTAL_UPLOADS = 108; 
+const THEME_COLOR = '#3DDC84'; 
 const UPLOAD_API = 'https://bj-media-hosting.pages.dev/api/upload';
 
 const loadingLogs = [
@@ -25,7 +28,7 @@ export default function App() {
   const [notification, setNotification] = useState(null);
   const [files, setFiles] = useState([]);
   const [stats, setStats] = useState({ count: 0, size: 0, today: 0 });
-  const [liveVisitors, setLiveVisitors] = useState(INITIAL_VISITORS);
+  const [liveVisitors, setLiveVisitors] = useState(INITIAL_ACTIVE_USERS);
   
   const fileInputRef = useRef(null);
 
@@ -60,8 +63,12 @@ export default function App() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setLiveVisitors(prev => prev + Math.floor(Math.random() * 5) - 2);
-    }, 3000);
+      // Realistic random fluctuation for new site
+      setLiveVisitors(prev => {
+        const change = Math.floor(Math.random() * 3) - 1; // -1, 0, or +1
+        return Math.max(10, prev + change); // Minimum 10 users rahenge
+      });
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -141,31 +148,31 @@ export default function App() {
     showNotify("Link Copied to Clipboard", "success");
   };
 
-  // --- STATS CONFIGURATION (THE NEW COLORFUL GRID) ---
+  // --- ANIMATED STATS CONFIG ---
   const statsConfig = [
     { 
       label: 'Total Files', 
       value: stats.count, 
       icon: <File />, 
-      color: '#3b82f6' // Neon Blue
+      color: '#3b82f6' 
     },
     { 
       label: 'Used Space', 
       value: `${stats.size} MB`, 
       icon: <HardDrive />, 
-      color: '#f59e0b' // Gold/Orange
+      color: '#f59e0b' 
     },
     { 
       label: 'Today', 
       value: stats.today, 
       icon: <Zap />, 
-      color: '#10b981' // Emerald Green
+      color: '#10b981' 
     },
     { 
       label: 'Bandwidth', 
       value: '∞', 
       icon: <Activity />, 
-      color: '#d946ef' // Neon Pink/Purple
+      color: '#d946ef' 
     },
   ];
 
@@ -256,24 +263,20 @@ export default function App() {
               transition={{ 
                 duration: 3, 
                 repeat: Infinity, 
-                delay: index * 0.2, // Staggered Animation
+                delay: index * 0.2, 
                 ease: "easeInOut" 
               }}
               className="bg-[#0a0a0c] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center transition-colors group relative overflow-hidden"
-              style={{ borderColor: `${item.color}30` }} // Border matches color slightly
+              style={{ borderColor: `${item.color}30` }}
             >
-               {/* Background Glow */}
                <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500" style={{ backgroundColor: item.color }}></div>
                
-               {/* Icon */}
                <div className="mb-2 transition-transform duration-300 group-hover:scale-110" style={{ color: item.color }}>
                  {React.cloneElement(item.icon, { size: 22 })}
                </div>
                
-               {/* Value */}
                <div className="text-lg font-bold text-white font-mono tracking-tight">{item.value}</div>
                
-               {/* Label */}
                <div className="text-[10px] uppercase tracking-widest opacity-60 font-bold mt-1" style={{ color: item.color }}>
                  {item.label}
                </div>
@@ -365,8 +368,19 @@ export default function App() {
                         </div>
 
                         <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => copyLink(file.url)} className="p-2 hover:text-green-400" title="Copy"><Copy size={14}/></button>
-                            <button onClick={() => deleteFile(file.id)} className="p-2 hover:text-red-500" title="Delete"><Trash2 size={14}/></button>
+                            {/* --- NEW OPEN BUTTON --- */}
+                            <a 
+                                href={file.url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="p-2 hover:bg-white/10 rounded-lg text-blue-400 transition-colors"
+                                title="Open Link"
+                            >
+                                <ExternalLink size={14} />
+                            </a>
+
+                            <button onClick={() => copyLink(file.url)} className="p-2 hover:bg-white/10 rounded-lg text-green-400 transition-colors" title="Copy"><Copy size={14}/></button>
+                            <button onClick={() => deleteFile(file.id)} className="p-2 hover:bg-white/10 rounded-lg text-red-500 transition-colors" title="Delete"><Trash2 size={14}/></button>
                         </div>
                     </motion.div>
                 ))}
@@ -376,7 +390,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* LIVE STATS FOOTER */}
+      {/* LIVE STATS FOOTER (Realistic Numbers) */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -401,7 +415,7 @@ export default function App() {
                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
                  <p className="text-[10px] font-bold tracking-widest text-green-500/70 uppercase">Total Uploads</p>
               </div>
-              <h3 className="text-2xl font-mono text-white font-bold">{(INITIAL_VISITORS + stats.count).toLocaleString()}</h3>
+              <h3 className="text-2xl font-mono text-white font-bold">{(INITIAL_TOTAL_UPLOADS + stats.count).toLocaleString()}</h3>
            </div>
            <div className="p-3 bg-green-500/10 rounded-xl text-green-400 group-hover:scale-110 transition-transform">
               <Database size={20} />
