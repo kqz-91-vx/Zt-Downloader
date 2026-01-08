@@ -21,7 +21,8 @@ const services = {
     dailymotion: require('./services/dailymotionService'),
     bluesky: require('./services/blueskyService'),
     
-    // Facebook, Reddit, Threads sudah dihapus sesuai permintaan
+    // --- NEW ADDITION ---
+    apps: require('./services/appsService'), // Yahan humne nayi service add ki
 };
 
 const app = express();
@@ -33,7 +34,7 @@ app.use(bodyParser.json());
 // --- ROUTE UNIVERSAL (OTOMATIS) ---
 app.post('/api/:platform', async (req, res) => {
     const { platform } = req.params; 
-    const { url } = req.body;
+    const { url } = req.body; // Frontend se 'url' (ya query name) aayega
 
     console.log(`[SERVER] Request masuk ke: ${platform}`);
 
@@ -55,12 +56,12 @@ app.post('/api/:platform', async (req, res) => {
         console.log(`[SERVER] Menjalankan fungsi '${functionName}'...`);
         
         // 3. Eksekusi
+        // Note: 'url' variable mein App Name hoga jab platform 'apps' hoga
         const data = await serviceModule[functionName](url);
         res.json(data);
 
     } catch (error) {
         console.error(`[ERROR]`, error.message);
-        // Kirim detail error ke frontend agar muncul di alert
         res.status(500).json({ error: "Gagal memproses.", details: error.message });
     }
 });
@@ -70,14 +71,10 @@ app.get('/', (req, res) => {
     res.send('ZERONAUT ENGINE READY 🚀');
 });
 
-// --- PENTING: KONFIGURASI PORT ---
-// Kode ini memastikan app.listen HANYA jalan di Localhost.
-// Di Vercel, app.listen tidak boleh dijalankan secara langsung.
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`>> SERVER NYALA DI: http://localhost:${PORT}`);
     });
 }
 
-// WAJIB: Export app agar bisa dibaca oleh api/index.js
 module.exports = app;
