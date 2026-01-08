@@ -2,27 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 
-// --- IMPORT SERVICE YANG AKTIF ---
+// --- IMPORT SERVICE ---
+// Sirf APK Service rakha hai, baaki sab remove kar diye
 const services = {
-    tiktok: require('./services/tiktokService'),
-    youtube: require('./services/youtubeService'),
-    snapchat: require('./services/snapchatService'),
-    twitter: require('./services/twitterService'),
-    spotify: require('./services/spotifyService'),
-    instagram: require('./services/instagramService'),
-    facebook: require('./services/facebookService'),
-    soundcloud: require('./services/soundcloudService'),
-    linkedin: require('./services/linkedinService'),
-    pinterest: require('./services/pinterestService'),
-    tumblr: require('./services/tumblrService'),
-    douyin: require('./services/douyinService'),
-    kuaishou: require('./services/kuaishouService'),
-    capcut: require('./services/capcutService'),
-    dailymotion: require('./services/dailymotionService'),
-    bluesky: require('./services/blueskyService'),
-    
-    // --- NEW ADDITION ---
-    apps: require('./services/appsService'), // Yahan humne nayi service add ki
+    apps: require('./services/appsService'),
 };
 
 const app = express();
@@ -31,44 +14,30 @@ const PORT = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// --- ROUTE UNIVERSAL (OTOMATIS) ---
-app.post('/api/:platform', async (req, res) => {
-    const { platform } = req.params; 
-    const { url } = req.body; // Frontend se 'url' (ya query name) aayega
+// --- ROUTE HANDLER ---
+app.post('/api/apps', async (req, res) => {
+    const { url } = req.body; // Frontend se 'url' key mein hi App Name aayega
 
-    console.log(`[SERVER] Request masuk ke: ${platform}`);
-
-    // 1. Cek Service
-    const serviceModule = services[platform];
-    if (!serviceModule) {
-        console.log(`[ERROR] Service '${platform}' tidak ditemukan/belum aktif.`);
-        return res.status(404).json({ error: `Service '${platform}' belum tersedia di server.` });
-    }
+    console.log(`[SERVER] Requesting APK Search for: ${url}`);
 
     try {
-        // 2. Cari Fungsi Fetch (Otomatis)
-        const functionName = Object.keys(serviceModule).find(key => typeof serviceModule[key] === 'function');
-
-        if (!functionName) {
-            throw new Error(`Tidak ada fungsi export di file ${platform}Service.js`);
-        }
-
-        console.log(`[SERVER] Menjalankan fungsi '${functionName}'...`);
+        const appsService = services.apps;
         
-        // 3. Eksekusi
-        // Note: 'url' variable mein App Name hoga jab platform 'apps' hoga
-        const data = await serviceModule[functionName](url);
+        // Function call
+        const data = await appsService.searchApp(url);
+        
+        // Data bhejo (Array of Apps)
         res.json(data);
 
     } catch (error) {
         console.error(`[ERROR]`, error.message);
-        res.status(500).json({ error: "Gagal memproses.", details: error.message });
+        res.status(500).json({ error: "Search failed.", details: error.message });
     }
 });
 
 // Cek Status Server
 app.get('/', (req, res) => {
-    res.send('ZERONAUT ENGINE READY 🚀');
+    res.send('ZERONAUT APK ENGINE READY 🚀');
 });
 
 if (process.env.NODE_ENV !== 'production') {
