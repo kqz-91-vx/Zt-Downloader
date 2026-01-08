@@ -5,7 +5,7 @@ import {
   Facebook, Linkedin, Cloud, Video, Mic2, Image, Radio, 
   Layers, Hash, Scissors, Clipboard, CheckCircle, Loader2, FileVideo, 
   FileAudio, Clock, Trash2, Activity, ImageIcon, 
-  AlertTriangle, X, Zap, Users, BarChart3, Heart
+  AlertTriangle, X, Zap, Users, BarChart3, Heart, Smartphone
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -27,6 +27,8 @@ const platforms = [
   { id: 'capcut', name: 'CapCut', icon: <Scissors />, color: '#ffffff' },
   { id: 'dailymotion', name: 'Dailymotion', icon: <Video />, color: '#0066DC' },
   { id: 'bluesky', name: 'Bluesky', icon: <Cloud />, color: '#0085FF' },
+  // --- NEW PLATFORM ADDED ---
+  { id: 'apps', name: 'App Store', icon: <Smartphone />, color: '#3DDC84' },
 ];
 
 const containerVariants = {
@@ -112,6 +114,12 @@ export default function App() {
   const getDownloadLink = (type) => {
     if (!result) return null;
 
+    // Special handling for APPS
+    if (selected === 'apps') {
+       if (type === 'video') return result.url || result.link || result.download;
+       return null;
+    }
+
     if (Array.isArray(result)) {
        if (type === 'video') {
           const vid = result.find(x => x.type === 'video' || x.type === 'mp4');
@@ -168,6 +176,7 @@ export default function App() {
         case 'pinterest': return { label: 'DOWNLOAD IMAGE', icon: <ImageIcon size={14} />, noData: 'NO IMAGE' };
         case 'spotify': return { label: 'DOWNLOAD TRACK', icon: <Music size={14} />, noData: 'NO TRACK' };
         case 'soundcloud': return { label: 'DOWNLOAD TRACK', icon: <Music size={14} />, noData: 'NO TRACK' };
+        case 'apps': return { label: 'DOWNLOAD APK', icon: <Smartphone size={14} />, noData: 'NO APK' };
         case 'instagram': 
             return { 
                 label: isImage ? 'DOWNLOAD IMAGE' : 'DOWNLOAD REEL', 
@@ -181,20 +190,48 @@ export default function App() {
   const btnConfig = getButtonConfig();
   const isAudioPlatform = ['spotify', 'soundcloud'].includes(selected);
   const primaryLink = isAudioPlatform ? getDownloadLink('audio') : getDownloadLink('video');
-  const showAudioButton = !isAudioPlatform && !['instagram', 'pinterest'].includes(selected);
+  const showAudioButton = !isAudioPlatform && !['instagram', 'pinterest', 'apps'].includes(selected);
 
   const handleExtract = async () => {
-    if (!url) return showNotify("Please insert URL first!", "error");
+    if (!url) return showNotify(selected === 'apps' ? "Please enter App Name!" : "Please insert URL first!", "error");
     if (!selected) return showNotify("Please select a platform first!", "error");
 
     setIsLoading(true);
     setResult(null);
 
     try {
-      const response = await axios.post(endpoint, { url: url });
-      setResult(response.data);
-      addToHistory(response.data);
+      let dataResponse;
+
+      // --- LOGIC BARU UNTUK APP DOWNLOADER ---
+      if (selected === 'apps') {
+          // Menggunakan API eksternal yang kamu berikan
+          const response = await axios.post("https://f-droid-search-download-bj.vercel.app/", { q: url });
+          const rawData = response.data;
+
+          // Mapping logic: Ambil hasil pertama jika array
+          let appItem = Array.isArray(rawData) ? rawData[0] : rawData;
+          if (rawData.results && Array.isArray(rawData.results)) appItem = rawData.results[0];
+
+          if (!appItem) throw new Error("No apps found with that name.");
+
+          // Format agar sesuai dengan Result Card UI
+          dataResponse = {
+             title: appItem.name || appItem.appName || appItem.title || url,
+             thumbnail: appItem.icon || appItem.image || appItem.logo || 'https://cdn-icons-png.flaticon.com/512/107/107168.png',
+             author: appItem.package || appItem.developer || appItem.id || 'F-Droid',
+             url: appItem.link || appItem.download || appItem.url || appItem.apk,
+             type: 'app'
+          };
+      } else {
+          // --- LOGIC LAMA UNTUK SOCMED ---
+          const response = await axios.post(endpoint, { url: url });
+          dataResponse = response.data;
+      }
+
+      setResult(dataResponse);
+      addToHistory(dataResponse);
       setStats(prev => ({ ...prev, links: prev.links + 1 }));
+
     } catch (error) {
       console.error("Extraction Error:", error);
       
@@ -295,7 +332,7 @@ export default function App() {
           <motion.button
             key={p.id}
             variants={itemVariants}
-            onClick={() => { setSelected(p.id); setResult(null); }}
+            onClick={() => { setSelected(p.id); setResult(null); setUrl(""); }}
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
             className={`relative flex flex-row items-center justify-start gap-3 px-3 sm:px-4 py-3 sm:py-4 rounded-xl border border-white/5 bg-[#0a0a0c] hover:bg-[#121214] transition-all duration-300 group overflow-hidden ${
@@ -334,7 +371,7 @@ export default function App() {
                   type="text"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder={`Paste ${activeName} Link here...`}
+                  placeholder={selected === 'apps' ? "Type App Name (e.g. Termux)..." : `Paste ${activeName} Link here...`}
                   className="w-full h-12 bg-black/40 border border-white/5 rounded-lg px-4 pr-10 text-white outline-none focus:border-white/20 transition-all placeholder:text-gray-600 font-mono text-xs"
                 />
                 <button onClick={handlePaste} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors">
@@ -348,7 +385,7 @@ export default function App() {
                 style={{ backgroundColor: activeColor }}
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} className="fill-black" />}
-                <span>{isLoading ? 'PROCESSING...' : 'EXTRACT'}</span>
+                <span>{selected === 'apps' ? 'SEARCH' : 'EXTRACT'}</span>
               </button>
             </div>
           </div>
@@ -374,8 +411,8 @@ export default function App() {
               </div>
               <div className="p-6 flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-1/3 aspect-video bg-black rounded-xl border border-white/5 relative overflow-hidden group shadow-lg">
-                  <img src={result.thumbnail} alt="Preview" className="w-full h-full object-cover opacity-80" />
-                  <div className="absolute bottom-2 left-2 text-[10px] text-white bg-black/60 backdrop-blur-md px-2 py-0.5 rounded border border-white/10">{result.size || 'HD Quality'}</div>
+                  <img src={result.thumbnail} alt="Preview" className="w-full h-full object-contain p-2 bg-gray-900/50" />
+                  <div className="absolute bottom-2 left-2 text-[10px] text-white bg-black/60 backdrop-blur-md px-2 py-0.5 rounded border border-white/10">{result.size || (selected === 'apps' ? 'Latest' : 'HD Quality')}</div>
                 </div>
                 <div className="flex-1 flex flex-col justify-between gap-4">
                   <div>
