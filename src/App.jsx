@@ -66,7 +66,6 @@ export default function App() {
   const activeName = selected ? platforms.find(p => p.id === selected).name : 'Universal';
 
   // --- REWRITE API ENDPOINT ---
-  // Gunakan relative path agar otomatis ikut domain Vercel (Backend Serverless)
   const endpoint = selected ? `/api/${selected}` : '';
 
   useEffect(() => {
@@ -92,7 +91,7 @@ export default function App() {
 
   const showNotify = (message, type = 'error') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 5000); // 5 Detik biar sempat baca
+    setTimeout(() => setNotification(null), 5000);
   };
 
   const handlePaste = async () => {
@@ -110,13 +109,13 @@ export default function App() {
 
   const clearHistory = () => setHistory([]);
 
-  // --- LOGIKA UTAMA PENCARI LINK (SAFE PARSING) ---
+  // --- LOGIKA UTAMA PENCARI LINK ---
   const getDownloadLink = (type) => {
     if (!result) return null;
 
-    // Special handling for APPS
+    // Special handling for APPS (Direct APK URL)
     if (selected === 'apps') {
-       if (type === 'video') return result.url || result.link || result.download;
+       if (type === 'video') return result.url; // Mapped from apkUrl
        return null;
     }
 
@@ -202,28 +201,29 @@ export default function App() {
     try {
       let dataResponse;
 
-      // --- LOGIC BARU UNTUK APP DOWNLOADER ---
+      // --- LOGIC BARU (FIXED FOR APPS GET METHOD) ---
       if (selected === 'apps') {
-          // Menggunakan API eksternal yang kamu berikan
-          const response = await axios.post("https://f-droid-search-download-bj.vercel.app/", { q: url });
-          const rawData = response.data;
+          // Use GET Request explicitly for F-Droid API
+          const response = await axios.get(`https://f-droid-search-download-bj.vercel.app/?q=${url}`);
+          const appData = response.data;
 
-          // Mapping logic: Ambil hasil pertama jika array
-          let appItem = Array.isArray(rawData) ? rawData[0] : rawData;
-          if (rawData.results && Array.isArray(rawData.results)) appItem = rawData.results[0];
+          if (!appData || (appData.ok === false)) {
+             throw new Error("Application not found.");
+          }
 
-          if (!appItem) throw new Error("No apps found with that name.");
-
-          // Format agar sesuai dengan Result Card UI
+          // Map sesuai format JSON API yang baru
           dataResponse = {
-             title: appItem.name || appItem.appName || appItem.title || url,
-             thumbnail: appItem.icon || appItem.image || appItem.logo || 'https://cdn-icons-png.flaticon.com/512/107/107168.png',
-             author: appItem.package || appItem.developer || appItem.id || 'F-Droid',
-             url: appItem.link || appItem.download || appItem.url || appItem.apk,
+             title: appData.name || url,
+             thumbnail: appData.icon || 'https://cdn-icons-png.flaticon.com/512/107/107168.png',
+             author: appData.creator || 'F-Droid',
+             url: appData.apkUrl, // Ini kunci penting untuk download
+             size: 'Latest Ver',
+             description: appData.summary,
+             date: appData.version,
              type: 'app'
           };
       } else {
-          // --- LOGIC LAMA UNTUK SOCMED ---
+          // --- LOGIC LAMA UNTUK SOCMED (POST METHOD) ---
           const response = await axios.post(endpoint, { url: url });
           dataResponse = response.data;
       }
@@ -235,18 +235,12 @@ export default function App() {
     } catch (error) {
       console.error("Extraction Error:", error);
       
-      // --- SMART ERROR PARSING (V.6.1) ---
       let msg = "Gagal menghubungi Server.";
       
       if (error.response && error.response.data) {
           const data = error.response.data;
-          // Cek berbagai kemungkinan format error backend
           msg = data.message || data.error || data.details || JSON.stringify(data);
-          
-          // Jika msg masih berupa object (misal: {status: 'error', ...}), paksa jadi string
-          if (typeof msg === 'object') {
-              msg = JSON.stringify(msg);
-          }
+          if (typeof msg === 'object') msg = JSON.stringify(msg);
       } else if (error.message) {
           msg = error.message;
       }
@@ -418,6 +412,7 @@ export default function App() {
                   <div>
                     <h3 className="text-white font-bold text-lg mb-1 line-clamp-2 leading-snug">{result.title}</h3>
                     <p className="text-gray-400 text-xs flex items-center gap-1"><Activity size={10}/> By {result.author}</p>
+                    {result.description && <p className="text-gray-500 text-[10px] mt-2 line-clamp-2">{result.description}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {primaryLink ? (
