@@ -234,7 +234,7 @@ export default function App() {
           transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
           style={{ backgroundImage: "linear-gradient(to right, #ffffff, #a5f3fc, #ffffff)" }}
         >
-          ZERONAUT.HOSTING
+          BJ.MEDIA HOSTING
         </motion.h1>
         
         <div className="flex items-center gap-3 mb-4">
@@ -425,7 +425,7 @@ export default function App() {
 
       {/* DONATE BUTTON */}
       <motion.a
-        href="https://sociabuzz.com/zeronaut/tribe" 
+        href="https://t.me/BJ_Devs" 
         target="_blank"
         rel="noopener noreferrer"
         whileHover={{ scale: 1.05 }}
@@ -438,10 +438,10 @@ export default function App() {
 
       <footer className="mt-16 text-center opacity-30 hover:opacity-100 transition-opacity pb-8 z-10">
         <p className="text-[10px] text-white font-mono tracking-[0.2em] mb-2">
-          © 2026 ZeroNaut Hosting. All rights reserved.
+          © 2026 BJ MEDIA Hosting. All rights reserved.
         </p>
         <div className="flex items-center justify-center gap-2 text-[9px] text-white">
-          <span>Powered by ZeroNaut Engine</span>
+          <span>Powered by BJ Tricks</span>
         </div>
       </footer>
     </div>
