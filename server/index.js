@@ -3,10 +3,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 
 // --- IMPORT SERVICE ---
-// Sirf APK Service rakha hai, baaki sab remove kar diye
-const services = {
-    apps: require('./services/appsService'),
-};
+// Sirf Apps Service active hai ab
+const appsService = require('./services/appsService');
 
 const app = express();
 const PORT = 3000;
@@ -14,24 +12,26 @@ const PORT = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// --- ROUTE HANDLER ---
+// --- MAIN ROUTE ---
 app.post('/api/apps', async (req, res) => {
-    const { url } = req.body; // Frontend se 'url' key mein hi App Name aayega
+    const { url } = req.body; // Frontend se 'url' variable mein Search Query aayegi
 
-    console.log(`[SERVER] Requesting APK Search for: ${url}`);
+    if (!url) {
+        return res.status(400).json({ error: "Query name is required" });
+    }
+
+    console.log(`[SERVER] Searching App: ${url}`);
 
     try {
-        const appsService = services.apps;
+        // Service function call karein
+        const results = await appsService.searchApp(url);
         
-        // Function call
-        const data = await appsService.searchApp(url);
-        
-        // Data bhejo (Array of Apps)
-        res.json(data);
+        // Success response
+        res.json(results);
 
     } catch (error) {
         console.error(`[ERROR]`, error.message);
-        res.status(500).json({ error: "Search failed.", details: error.message });
+        res.status(500).json({ error: "Failed to fetch apps.", details: error.message });
     }
 });
 
